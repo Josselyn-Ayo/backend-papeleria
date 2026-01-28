@@ -2,14 +2,18 @@
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 
-$serverName = "DESKTOP-TC02VK7\SQLEXPRESS01"; 
-$connectionInfo = array("Database" => "papeleria", "CharacterSet" => "UTF-8", "TrustServerCertificate" => true);
-$conn = sqlsrv_connect($serverName, $connectionInfo);
+// CORRECCIÓN: Salimos de la carpeta 'phpAsistente' para buscar 'db.php' en la raíz
+require_once '../db.php'; 
 
-if (!$conn) { die(json_encode(["error" => "Conexión fallida"])); }
+// Validamos que la conexión central ($conn) esté funcionando
+if (!$conn) { 
+    die(json_encode([
+        "error" => "Conexión fallida",
+        "detalle" => "No se pudo conectar al servidor de Azure desde db.php"
+    ])); 
+}
 
-// IMPORTANTE: Verifica si tu tabla categoria tiene 'nombre' o 'nombre_categoria'
-// He ajustado la consulta para ser más segura
+// Consulta ajustada para traer productos con su categoría
 $query = "SELECT p.id_producto, p.codigo_barras, p.nombre, p.descripcion, 
                  p.precio_actual, p.stock_actual, c.nombre AS nombre_categoria 
           FROM producto p
@@ -18,7 +22,7 @@ $query = "SELECT p.id_producto, p.codigo_barras, p.nombre, p.descripcion,
 
 $stmt = sqlsrv_query($conn, $query);
 
-// VALIDACIÓN CRÍTICA: Si la consulta falla, capturamos el error de SQL Server
+// VALIDACIÓN CRÍTICA: Si la consulta falla, capturamos el error
 if ($stmt === false) {
     die(json_encode([
         "error" => "Error en la consulta SQL",
@@ -27,7 +31,6 @@ if ($stmt === false) {
 }
 
 $productos = [];
-// Ahora solo entra aquí si $stmt es un recurso válido
 while ($row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
     $productos[] = [
         "id" => $row['id_producto'],
@@ -40,6 +43,10 @@ while ($row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
     ];
 }
 
-echo json_encode($productos);
+// Respuesta en formato JSON compatible con tu frontend
+echo json_encode($productos, JSON_UNESCAPED_UNICODE);
+
+// Cierre de recursos
+sqlsrv_free_stmt($stmt);
 sqlsrv_close($conn);
 ?>
