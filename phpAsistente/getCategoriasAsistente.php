@@ -2,11 +2,16 @@
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 
-$serverName = "DESKTOP-TC02VK7\SQLEXPRESS01"; 
-$connectionInfo = array("Database" => "papeleria", "CharacterSet" => "UTF-8", "TrustServerCertificate" => true);
-$conn = sqlsrv_connect($serverName, $connectionInfo);
+// CORRECCIÓN: Se agregaron los dos puntos (../) para salir de la carpeta phpAsistente
+require_once '../db.php'; 
 
-if (!$conn) { die(json_encode(["error" => "Conexión fallida"])); }
+// Verificamos si la conexión ($conn) definida en db.php existe
+if (!$conn) { 
+    die(json_encode([
+        "error" => "Conexión fallida",
+        "detalle" => "No se pudo establecer conexión con la base de datos."
+    ])); 
+}
 
 // Traemos el nombre de la categoría y contamos cuántos productos tiene asociados
 $query = "SELECT c.id_categoria, c.nombre, COUNT(p.id_producto) as total_productos 
@@ -30,6 +35,8 @@ while ($row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
     ];
 }
 
-echo json_encode($categorias);
+echo json_encode($categorias, JSON_UNESCAPED_UNICODE);
+
+sqlsrv_free_stmt($stmt);
 sqlsrv_close($conn);
 ?>
